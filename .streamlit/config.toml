@@ -1,2 +1,8 @@
+[theme]
+primaryColor="#F55036"
+backgroundColor="#FFFFFF"
+textColor="#000000"
+base="light"
+
 [server]
 enableStaticServing = true
