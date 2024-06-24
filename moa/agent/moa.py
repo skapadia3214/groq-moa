@@ -18,7 +18,7 @@ valid_model_names = Literal[
     'llama3-8b-8192',
     'gemma-7b-it',
     'mixtral-8x7b-32768'
-]\
+]
 
 class ResponseChunk(TypedDict):
     delta: str
