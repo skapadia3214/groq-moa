@@ -1,0 +1,4 @@
+langchain>=0.2.5
+langchain_groq>=0.1.5
+streamlit>=1.36.0
+watchdog>=4.0.1
