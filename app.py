@@ -20,7 +20,8 @@ layer_agent_config_def = {
     },
     "layer_agent_2": {
         "system_prompt": "Respond with a thought and then your response to the question. {helper_response}",
-        "model_name": "gemma-7b-it"
+        "model_name": "gemma-7b-it",
+        "temperature": 0.7
     },
     "layer_agent_3": {
         "system_prompt": "You are an expert at logic and reasoning. Always take a logical approach to the answer. {helper_response}",
@@ -58,13 +59,23 @@ def stream_response(messages: Iterable[ResponseChunk]):
 def set_moa_agent(
     main_model: str = default_config['main_model'],
     cycles: int = default_config['cycles'],
-    layer_agent_config: dict[dict[str, any]] = copy.deepcopy(layer_agent_config_def)
+    layer_agent_config: dict[dict[str, any]] = copy.deepcopy(layer_agent_config_def),
+    override: bool = False
 ):
-    st.session_state.main_model = main_model
+    if override or ("main_model" not in st.session_state):
+        st.session_state.main_model = main_model
+    else:
+        if "main_model" not in st.session_state: st.session_state.main_model = main_model 
 
-    st.session_state.cycles = cycles
+    if override or ("cycles" not in st.session_state):
+        st.session_state.cycles = cycles
+    else:
+        if "cycles" not in st.session_state: st.session_state.cycles = cycles
 
-    st.session_state.layer_agent_config = layer_agent_config
+    if override or ("layer_agent_config" not in st.session_state):
+        st.session_state.layer_agent_config = layer_agent_config
+    else:
+        if "layer_agent_config" not in st.session_state: st.session_state.layer_agent_config = layer_agent_config
 
     cls_ly_conf = copy.deepcopy(st.session_state.layer_agent_config)
     st.session_state.moa_agent = MOAgent.from_config(
@@ -74,7 +85,7 @@ def set_moa_agent(
     )
     del cls_ly_conf
     del layer_agent_config
-    
+
 st.set_page_config(
     page_title="Mixture-Of-Agents Powered by Groq",
     page_icon='static/favicon.ico',
@@ -123,7 +134,7 @@ with st.sidebar:
         )
 
         # Layer agent configuration
-        tooltip = "Agents in the layer agent configuration run in parallel _per cycle_. Each layer agent supports all initialization parameters of [Langchain's ChatGroq](https://python.langchain.com/v0.2/docs/integrations/chat/groq/) class as valid dictionary fields."
+        tooltip = "Agents in the layer agent configuration run in parallel _per cycle_. Each layer agent supports all initialization parameters of [Langchain's ChatGroq](https://api.python.langchain.com/en/latest/chat_models/langchain_groq.chat_models.ChatGroq.html) class as valid dictionary fields."
         st.markdown("Layer Agent Config", help=tooltip)
         new_layer_agent_config = st_ace(
             value=json.dumps(layer_agent_config_def, indent=2),
@@ -140,7 +151,8 @@ with st.sidebar:
                 set_moa_agent(
                     main_model=new_main_model,
                     cycles=new_cycles,
-                    layer_agent_config=new_layer_config
+                    layer_agent_config=new_layer_config,
+                    override=True
                 )
                 st.session_state.messages = []
                 st.success("Configuration updated successfully!")
