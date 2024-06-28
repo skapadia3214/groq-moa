@@ -180,7 +180,6 @@ with st.expander("Current MOA Configuration", expanded=False):
         readonly=True,
         auto_update=True
     )
-    # st.json(st.session_state.moa_config)
 
 # Chat interface
 for message in st.session_state.messages:
