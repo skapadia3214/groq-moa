@@ -9,7 +9,7 @@ import copy
 # Default configuration
 default_config = {
     "main_model": "llama3-70b-8192",
-    "cycles": 1,
+    "cycles": 3,
     "layer_agent_config": {}
 }
 
@@ -27,11 +27,40 @@ layer_agent_config_def = {
         "system_prompt": "You are an expert at logic and reasoning. Always take a logical approach to the answer. {helper_response}",
         "model_name": "llama3-8b-8192"
     },
+
+}
+
+# Recommended Configuration
+
+rec_config = {
+    "main_model": "llama3-70b-8192",
+    "cycles": 2,
+    "layer_agent_config": {}
+}
+
+layer_agent_config_rec = {
+    "layer_agent_1": {
+        "system_prompt": "Think through your response step by step. {helper_response}",
+        "model_name": "llama3-8b-8192",
+        "temperature": 0.1
+    },
+    "layer_agent_2": {
+        "system_prompt": "Respond with a thought and then your response to the question. {helper_response}",
+        "model_name": "llama3-8b-8192",
+        "temperature": 0.2
+    },
+    "layer_agent_3": {
+        "system_prompt": "You are an expert at logic and reasoning. Always take a logical approach to the answer. {helper_response}",
+        "model_name": "llama3-8b-8192",
+        "temperature": 0.4
+    },
     "layer_agent_4": {
-        "system_prompt": "You are an expert planner agent. If and when necessary, create a plan for how to answer the human's query. {helper_response}",
-        "model_name": "gemma-7b-it"
+        "system_prompt": "You are an expert planner agent. Create a plan for how to answer the human's query. {helper_response}",
+        "model_name": "mixtral-8x7b-32768",
+        "temperature": 0.5
     },
 }
+
 
 def stream_response(messages: Iterable[ResponseChunk]):
     layer_outputs = {}
@@ -78,11 +107,14 @@ def set_moa_agent(
         if "layer_agent_config" not in st.session_state: st.session_state.layer_agent_config = layer_agent_config
 
     cls_ly_conf = copy.deepcopy(st.session_state.layer_agent_config)
-    st.session_state.moa_agent = MOAgent.from_config(
-        main_model=st.session_state.main_model,
-        cycles=st.session_state.cycles,
-        layer_agent_config=cls_ly_conf
-    )
+    
+    if override or ("moa_agent" not in st.session_state):
+        st.session_state.moa_agent = MOAgent.from_config(
+            main_model=st.session_state.main_model,
+            cycles=st.session_state.cycles,
+            layer_agent_config=cls_ly_conf
+        )
+
     del cls_ly_conf
     del layer_agent_config
 
@@ -117,7 +149,20 @@ with st.sidebar:
     # config_form = st.form("Agent Configuration", border=False)
     st.title("MOA Configuration")
     with st.form("Agent Configuration", border=False):
-
+        if st.form_submit_button("Use Recommended Config"):
+            try:
+                set_moa_agent(
+                    main_model=rec_config['main_model'],
+                    cycles=rec_config['cycles'],
+                    layer_agent_config=layer_agent_config_rec,
+                    override=True
+                )
+                st.session_state.messages = []
+                st.success("Configuration updated successfully!")
+            except json.JSONDecodeError:
+                st.error("Invalid JSON in Layer Agent Configuration. Please check your input.")
+            except Exception as e:
+                st.error(f"Error updating configuration: {str(e)}")
         # Main model selection
         new_main_model = st.selectbox(
             "Select Main Model",
@@ -127,7 +172,7 @@ with st.sidebar:
 
         # Cycles input
         new_cycles = st.number_input(
-            "Number of Cycles",
+            "Number of Layers",
             min_value=1,
             max_value=10,
             value=st.session_state.cycles
@@ -137,7 +182,7 @@ with st.sidebar:
         tooltip = "Agents in the layer agent configuration run in parallel _per cycle_. Each layer agent supports all initialization parameters of [Langchain's ChatGroq](https://api.python.langchain.com/en/latest/chat_models/langchain_groq.chat_models.ChatGroq.html) class as valid dictionary fields."
         st.markdown("Layer Agent Config", help=tooltip)
         new_layer_agent_config = st_ace(
-            value=json.dumps(layer_agent_config_def, indent=2),
+            value=json.dumps(st.session_state.layer_agent_config, indent=2),
             language='json',
             placeholder="Layer Agent Configuration (JSON)",
             show_gutter=False,
@@ -161,15 +206,23 @@ with st.sidebar:
             except Exception as e:
                 st.error(f"Error updating configuration: {str(e)}")
 
+    st.markdown("---")
+    st.markdown("""
+    ### Credits
+    - MOA: [Together AI](https://www.together.ai/blog/together-moa)
+    - LLMs: [Groq](https://groq.com/)
+    - Paper: [arXiv:2406.04692](https://arxiv.org/abs/2406.04692)
+    """)
+
 # Main app layout
 st.header("Mixture of Agents", anchor=False)
 st.write("A demo of the Mixture of Agents architecture proposed by Together AI, Powered by Groq LLMs.")
-st.image("./static/moa_arc.png", caption="Source: https://www.together.ai/blog/together-moa")
+st.image("./static/moa_groq.svg", caption="Mixture of Agents Workflow", width=1000)
 
 # Display current configuration
 with st.expander("Current MOA Configuration", expanded=False):
     st.markdown(f"**Main Model**: ``{st.session_state.main_model}``")
-    st.markdown(f"**Cycles**: ``{st.session_state.cycles}``")
+    st.markdown(f"**Layers**: ``{st.session_state.cycles}``")
     st.markdown(f"**Layer Agents Config**:")
     new_layer_agent_config = st_ace(
         value=json.dumps(st.session_state.layer_agent_config, indent=2),
