@@ -17,7 +17,7 @@ This Streamlit application showcases the Mixture of Agents (MOA) architecture pr
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/moa-streamlit-app.git
+   git clone https://github.com/skapadia3214/groq-moa.git
    cd moa-streamlit-app
    ```
 
