@@ -1,12 +1,13 @@
 """
 Langchain agent
 """
-from typing import Generator, Dict, Optional, Literal, TypedDict
+from typing import Generator, Dict, Optional, Literal, TypedDict, List
 from dotenv import load_dotenv
 
 from langchain_groq import ChatGroq
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.messages import BaseMessage
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda, RunnableSerializable
 from langchain_core.output_parsers import StrOutputParser
 
@@ -17,6 +18,7 @@ valid_model_names = Literal[
     'llama3-70b-8192',
     'llama3-8b-8192',
     'gemma-7b-it',
+    'gemma2-9b-it',
     'mixtral-8x7b-32768'
 ]
 
@@ -70,14 +72,16 @@ class MOAgent:
         system_prompt: Optional[str] = None,
         cycles: int = 1,
         layer_agent_config: Optional[Dict] = None,
-        reference_system_prompt: Optional[str] = None
+        reference_system_prompt: Optional[str] = None,
+        **main_model_kwargs
     ):
         reference_system_prompt = reference_system_prompt or REFERENCE_SYSTEM_PROMPT
         system_prompt = system_prompt or SYSTEM_PROMPT
         layer_agent = MOAgent._configure_layer_agent(layer_agent_config)
         main_agent = MOAgent._create_agent_from_system_prompt(
             system_prompt=system_prompt,
-            model_name=main_model
+            model_name=main_model,
+            **main_model_kwargs
         )
         return cls(
             main_agent=main_agent,
@@ -130,6 +134,7 @@ class MOAgent:
     def chat(
         self, 
         input: str,
+        messages: Optional[List[BaseMessage]] = None,
         cycles: Optional[int] = None,
         save: bool = True,
         output_format: Literal['string', 'json'] = 'string'
@@ -137,7 +142,7 @@ class MOAgent:
         cycles = cycles or self.cycles
         llm_inp = {
             'input': input,
-            'messages': self.chat_memory.load_memory_variables({})['messages'],
+            'messages': messages or self.chat_memory.load_memory_variables({})['messages'],
             'helper_response': ""
         }
         for cyc in range(cycles):

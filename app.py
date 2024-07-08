@@ -89,6 +89,7 @@ def set_moa_agent(
     main_model: str = default_config['main_model'],
     cycles: int = default_config['cycles'],
     layer_agent_config: dict[dict[str, any]] = copy.deepcopy(layer_agent_config_def),
+    main_model_temperature: float = 0.1,
     override: bool = False
 ):
     if override or ("main_model" not in st.session_state):
@@ -106,13 +107,19 @@ def set_moa_agent(
     else:
         if "layer_agent_config" not in st.session_state: st.session_state.layer_agent_config = layer_agent_config
 
+    if override or ("main_temp" not in st.session_state):
+        st.session_state.main_temp = main_model_temperature
+    else:
+        if "main_temp" not in st.session_state: st.session_state.main_temp = main_model_temperature
+
     cls_ly_conf = copy.deepcopy(st.session_state.layer_agent_config)
     
     if override or ("moa_agent" not in st.session_state):
         st.session_state.moa_agent = MOAgent.from_config(
             main_model=st.session_state.main_model,
             cycles=st.session_state.cycles,
-            layer_agent_config=cls_ly_conf
+            layer_agent_config=cls_ly_conf,
+            temperature=st.session_state.main_temp
         )
 
     del cls_ly_conf
@@ -130,6 +137,7 @@ valid_model_names = [
     'llama3-70b-8192',
     'llama3-8b-8192',
     'gemma-7b-it',
+    'gemma2-9b-it',
     'mixtral-8x7b-32768'
 ]
 
@@ -178,6 +186,15 @@ with st.sidebar:
             value=st.session_state.cycles
         )
 
+        # Main Model Temperature
+        main_temperature = st.number_input(
+            label="Main Model Temperature",
+            value=0.1,
+            min_value=0.0,
+            max_value=1.0,
+            step=0.1
+        )
+
         # Layer agent configuration
         tooltip = "Agents in the layer agent configuration run in parallel _per cycle_. Each layer agent supports all initialization parameters of [Langchain's ChatGroq](https://api.python.langchain.com/en/latest/chat_models/langchain_groq.chat_models.ChatGroq.html) class as valid dictionary fields."
         st.markdown("Layer Agent Config", help=tooltip)
@@ -197,6 +214,7 @@ with st.sidebar:
                     main_model=new_main_model,
                     cycles=new_cycles,
                     layer_agent_config=new_layer_config,
+                    main_model_temperature=main_temperature,
                     override=True
                 )
                 st.session_state.messages = []
@@ -222,6 +240,7 @@ st.image("./static/moa_groq.svg", caption="Mixture of Agents Workflow", width=10
 # Display current configuration
 with st.expander("Current MOA Configuration", expanded=False):
     st.markdown(f"**Main Model**: ``{st.session_state.main_model}``")
+    st.markdown(f"**Main Model Temperature**: ``{st.session_state.main_temp:.1f}``")
     st.markdown(f"**Layers**: ``{st.session_state.cycles}``")
     st.markdown(f"**Layer Agents Config**:")
     new_layer_agent_config = st_ace(
