@@ -138,7 +138,9 @@ valid_model_names = [
     'llama3-8b-8192',
     'gemma-7b-it',
     'gemma2-9b-it',
-    'mixtral-8x7b-32768'
+    'mixtral-8x7b-32768',
+    'llama-3.1-70b-Versatile',
+    'llama-3.1-8b-Instant'
 ]
 
 st.markdown("<a href='https://groq.com'><img src='app/static/banner.png' width='500'></a>", unsafe_allow_html=True)
