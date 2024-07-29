@@ -1,7 +1,7 @@
 """
 Langchain agent
 """
-from typing import Generator, Dict, Optional, Literal, TypedDict, List
+from typing import Generator, Dict, Optional, Literal, TypedDict, List, Any
 from dotenv import load_dotenv
 
 from langchain_groq import ChatGroq
@@ -19,13 +19,15 @@ valid_model_names = Literal[
     'llama3-8b-8192',
     'gemma-7b-it',
     'gemma2-9b-it',
-    'mixtral-8x7b-32768'
+    'mixtral-8x7b-32768',
+    'llama-3.1-8b-instant',
+    'llama-3.1-70b-versatile'
 ]
 
 class ResponseChunk(TypedDict):
     delta: str
     response_type: Literal['intermediate', 'output']
-    metadata: Dict = {}
+    metadata: Dict[str, Any]
 
 
 class MOAgent:
