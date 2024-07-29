@@ -1,5 +1,6 @@
 import streamlit as st
 import json
+from groq import Groq
 from typing import Iterable
 from moa.agent import MOAgent
 from moa.agent.moa import ResponseChunk
@@ -133,13 +134,8 @@ st.set_page_config(
     },
     layout="wide"
 )
-valid_model_names = [
-    'llama3-70b-8192',
-    'llama3-8b-8192',
-    'gemma-7b-it',
-    'gemma2-9b-it',
-    'mixtral-8x7b-32768'
-]
+
+valid_model_names = [model.id for model in Groq().models.list().data if not model.id.startswith("whisper")]
 
 st.markdown("<a href='https://groq.com'><img src='app/static/banner.png' width='500'></a>", unsafe_allow_html=True)
 st.write("---")
