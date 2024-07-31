@@ -1,10 +1,16 @@
-import streamlit as st
 import json
-from typing import Iterable
+from typing import Iterable, Optional
+import copy
+
+import streamlit as st
 from moa.agent import MOAgent
 from moa.agent.moa import ResponseChunk
 from streamlit_ace import st_ace
-import copy
+
+from config import CHAT_RATE_LIMIT
+
+if not "CHAT_RATE_LIMIT" in st.session_state:
+    st.session_state['CHAT_RATE_LIMIT'] = CHAT_RATE_LIMIT
 
 # Default configuration
 default_config = {
@@ -90,6 +96,7 @@ def set_moa_agent(
     cycles: int = default_config['cycles'],
     layer_agent_config: dict[dict[str, any]] = copy.deepcopy(layer_agent_config_def),
     main_model_temperature: float = 0.1,
+    groq_api_key: Optional[str] = None,
     override: bool = False
 ):
     if override or ("main_model" not in st.session_state):
@@ -112,14 +119,20 @@ def set_moa_agent(
     else:
         if "main_temp" not in st.session_state: st.session_state.main_temp = main_model_temperature
 
+    if groq_api_key or ("groq_api_key" not in st.session_state):
+        st.session_state.groq_api_key = groq_api_key
+    else:
+        if "groq_api_key" not in st.session_state: st.session_state.groq_api_key = groq_api_key
+
     cls_ly_conf = copy.deepcopy(st.session_state.layer_agent_config)
     
-    if override or ("moa_agent" not in st.session_state):
+    if override or ("moa_agent" not in st.session_state) or (groq_api_key):
         st.session_state.moa_agent = MOAgent.from_config(
             main_model=st.session_state.main_model,
             cycles=st.session_state.cycles,
             layer_agent_config=cls_ly_conf,
-            temperature=st.session_state.main_temp
+            temperature=st.session_state.main_temp,
+            groq_api_key=groq_api_key
         )
 
     del cls_ly_conf
@@ -235,8 +248,22 @@ with st.sidebar:
 # Main app layout
 st.header("Mixture of Agents", anchor=False)
 st.write("A demo of the Mixture of Agents architecture proposed by Together AI, Powered by Groq LLMs.")
-st.image("./static/moa_groq.svg", caption="Mixture of Agents Workflow", width=1000)
+st.write(f"By default you are limited to {CHAT_RATE_LIMIT} chats per day. Once reached, you can use your own Groq API key to process additional requests.")
 
+with st.expander("Groq API KEY"):
+    with st.form("Add your own Groq api key", border=False):
+        groq_api_key = st.text_input(
+            "GROQ_API_KEY", 
+            placeholder="Enter your GROQ API KEY", 
+            type='password',
+            help=f"Enter your Groq API KEY to further use this demo."
+        )
+        submit_api_key = st.form_submit_button("Replace API KEY")
+        if submit_api_key:
+            set_moa_agent(groq_api_key=groq_api_key)
+            st.session_state.messages = []
+
+st.image("./static/moa_groq.svg", caption="Mixture of Agents Workflow", width=1000)
 # Display current configuration
 with st.expander("Current MOA Configuration", expanded=False):
     st.markdown(f"**Main Model**: ``{st.session_state.main_model}``")
@@ -262,11 +289,13 @@ if query := st.chat_input("Ask a question"):
     st.session_state.messages.append({"role": "user", "content": query})
     with st.chat_message("user"):
         st.write(query)
-
-    moa_agent: MOAgent = st.session_state.moa_agent
-    with st.chat_message("assistant"):
-        message_placeholder = st.empty()
-        ast_mess = stream_response(moa_agent.chat(query, output_format='json'))
-        response = st.write_stream(ast_mess)
-    
-    st.session_state.messages.append({"role": "assistant", "content": response})
+    if CHAT_RATE_LIMIT*2 + 1 == len(st.session_state.messages) and not st.session_state.get("groq_api_key"):
+        st.warning("You have reached the limit to chat. Please enter your own GROQ API KEY to chat more")
+    else:
+        moa_agent: MOAgent = st.session_state.moa_agent
+        with st.chat_message("assistant"):
+            message_placeholder = st.empty()
+            ast_mess = stream_response(moa_agent.chat(query, output_format='json'))
+            response = st.write_stream(ast_mess)
+        
+        st.session_state.messages.append({"role": "assistant", "content": response})
