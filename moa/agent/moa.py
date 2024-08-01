@@ -1,8 +1,9 @@
 """
 Langchain agent
 """
-from typing import Generator, Dict, Optional, Literal, TypedDict, List
+from typing import Generator, Dict, Optional, Literal, TypedDict, List, Any
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field
 
 from langchain_groq import ChatGroq
 from langchain.memory import ConversationBufferMemory
@@ -13,19 +14,34 @@ from langchain_core.output_parsers import StrOutputParser
 
 from .prompts import SYSTEM_PROMPT, REFERENCE_SYSTEM_PROMPT
 
+
+
+class MOAgentConfig(BaseModel):
+    main_model: Optional[str] = None
+    system_prompt: Optional[str] = None
+    cycles: int = Field(...)
+    layer_agent_config: Optional[Dict[str, Any]] = None
+    reference_system_prompt: Optional[str] = None
+    max_tokens: Optional[int] = None
+
+    class Config:
+        extra = "allow"  # This allows for additional fields not explicitly defined
+
 load_dotenv()
 valid_model_names = Literal[
     'llama3-70b-8192',
     'llama3-8b-8192',
     'gemma-7b-it',
     'gemma2-9b-it',
-    'mixtral-8x7b-32768'
+    'mixtral-8x7b-32768',
+    'llama-3.1-8b-instant',
+    'llama-3.1-70b-versatile'
 ]
 
 class ResponseChunk(TypedDict):
     delta: str
     response_type: Literal['intermediate', 'output']
-    metadata: Dict = {}
+    metadata: Dict[str, Any]
 
 
 class MOAgent:
@@ -73,16 +89,14 @@ class MOAgent:
         cycles: int = 1,
         layer_agent_config: Optional[Dict] = None,
         reference_system_prompt: Optional[str] = None,
-        groq_api_key: Optional[str] = None,
         **main_model_kwargs
     ):
         reference_system_prompt = reference_system_prompt or REFERENCE_SYSTEM_PROMPT
         system_prompt = system_prompt or SYSTEM_PROMPT
-        layer_agent = MOAgent._configure_layer_agent(layer_agent_config, groq_api_key)
+        layer_agent = MOAgent._configure_layer_agent(layer_agent_config)
         main_agent = MOAgent._create_agent_from_system_prompt(
             system_prompt=system_prompt,
             model_name=main_model,
-            groq_api_key=groq_api_key,
             **main_model_kwargs
         )
         return cls(
@@ -94,8 +108,7 @@ class MOAgent:
 
     @staticmethod
     def _configure_layer_agent(
-        layer_agent_config: Optional[Dict] = None,
-        groq_api_key: Optional[str] = None
+        layer_agent_config: Optional[Dict] = None
     ) -> RunnableSerializable[Dict, Dict]:
         if not layer_agent_config:
             layer_agent_config = {
@@ -109,7 +122,6 @@ class MOAgent:
             chain = MOAgent._create_agent_from_system_prompt(
                 system_prompt=value.pop("system_prompt", SYSTEM_PROMPT), 
                 model_name=value.pop("model_name", 'llama3-8b-8192'),
-                groq_api_key=groq_api_key,
                 **value
             )
             parallel_chain_map[key] = RunnablePassthrough() | chain
