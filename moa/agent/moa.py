@@ -3,6 +3,7 @@ Langchain agent
 """
 from typing import Generator, Dict, Optional, Literal, TypedDict, List, Any
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field
 
 from langchain_groq import ChatGroq
 from langchain.memory import ConversationBufferMemory
@@ -12,6 +13,19 @@ from langchain_core.runnables import RunnablePassthrough, RunnableLambda, Runnab
 from langchain_core.output_parsers import StrOutputParser
 
 from .prompts import SYSTEM_PROMPT, REFERENCE_SYSTEM_PROMPT
+
+
+
+class MOAgentConfig(BaseModel):
+    main_model: Optional[str] = None
+    system_prompt: Optional[str] = None
+    cycles: int = Field(...)
+    layer_agent_config: Optional[Dict[str, Any]] = None
+    reference_system_prompt: Optional[str] = None
+    max_tokens: Optional[int] = None
+
+    class Config:
+        extra = "allow"  # This allows for additional fields not explicitly defined
 
 load_dotenv()
 valid_model_names = Literal[
