@@ -33,7 +33,6 @@ valid_model_names = Literal[
     'llama3-8b-8192',
     'gemma-7b-it',
     'gemma2-9b-it',
-    'mixtral-8x7b-32768',
     'llama-3.1-8b-instant',
     'llama-3.1-70b-versatile'
 ]
@@ -114,7 +113,7 @@ class MOAgent:
             layer_agent_config = {
                 'layer_agent_1' : {'system_prompt': SYSTEM_PROMPT, 'model_name': 'llama3-8b-8192'},
                 'layer_agent_2' : {'system_prompt': SYSTEM_PROMPT, 'model_name': 'gemma-7b-it'},
-                'layer_agent_3' : {'system_prompt': SYSTEM_PROMPT, 'model_name': 'mixtral-8x7b-32768'}
+                'layer_agent_3' : {'system_prompt': SYSTEM_PROMPT, 'model_name': 'llama-3.1-8b-instant'}
             }
 
         parallel_chain_map = dict()

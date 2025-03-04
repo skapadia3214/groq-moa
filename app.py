@@ -27,7 +27,7 @@ default_layer_agent_config = {
     },
     "layer_agent_2": {
         "system_prompt": "Respond with a thought and then your response to the question. {helper_response}",
-        "model_name": "gemma-7b-it",
+        "model_name": "gemma-9b-it",
         "temperature": 0.7
     },
     "layer_agent_3": {
@@ -39,7 +39,7 @@ default_layer_agent_config = {
 
 # Recommended Configuration
 rec_main_agent_config = {
-    "main_model": "llama-3.1-70b-versatile",
+    "main_model": "llama-3.3-70b-versatile",
     "cycles": 2,
     "temperature": 0.1,
     "system_prompt": SYSTEM_PROMPT,
@@ -60,13 +60,13 @@ rec_layer_agent_config = {
     },
     "layer_agent_3": {
         "system_prompt": "You are an expert at logic and reasoning. Always take a logical approach to the answer. {helper_response}",
-        "model_name": "llama-3.1-70b-versatile",
+        "model_name": "llama-3.3-70b-versatile",
         "temperature": 0.4,
         "max_tokens": 2048
     },
     "layer_agent_4": {
         "system_prompt": "You are an expert planner agent. Create a plan for how to answer the human's query. {helper_response}",
-        "model_name": "mixtral-8x7b-32768",
+        "model_name": "llama-3.1-8b-instant",
         "temperature": 0.5
     },
 }
@@ -143,9 +143,9 @@ st.set_page_config(
     layout="wide"
 )
 
-valid_model_names = [model.id for model in Groq().models.list().data if not (model.id.startswith("whisper") or model.id.startswith("llama-guard"))]
+valid_model_names = sorted([model.id for model in Groq().models.list().data if not (model.id.startswith("whisper") or model.id.startswith("llama-guard"))])
 
-st.markdown("<a href='https://groq.com'><img src='app/static/banner.png' width='500'></a>", unsafe_allow_html=True)
+st.markdown("<a href='https://groq.com'><img src='app/static/banner.png' width='300'></a>", unsafe_allow_html=True)
 st.write("---")
 
 # Initialize session state
@@ -204,6 +204,8 @@ with st.sidebar:
             options=valid_model_names,
             index=valid_model_names.index(st.session_state.moa_main_agent_config['main_model'])
         )
+
+        
 
 
 
@@ -286,6 +288,9 @@ This is passed into the `{helper_response}` variable in the system prompt. \
                 st.error("Invalid JSON in Layer Agent Configuration. Please check your input.")
             except Exception as e:
                 st.error(f"Error updating configuration: {str(e)}")
+                
+    st.write("The available model_names include: ")
+    st.info("\n\n".join(valid_model_names))
 
     st.markdown("---")
     st.markdown("""
@@ -301,7 +306,7 @@ st.write("A demo of the Mixture of Agents architecture proposed by Together AI, 
 
 # Display current configuration
 with st.status("Current MOA Configuration", expanded=True, state='complete') as config_status:
-    st.image("./static/moa_groq.svg", caption="Mixture of Agents Workflow", use_column_width='always')
+    st.image("./static/moa_groq.svg", caption="Mixture of Agents Workflow", use_container_width='always')
     st.markdown(f"**Main Agent Config**:")
     new_layer_agent_config = st_ace(
         value=json.dumps(st.session_state.moa_main_agent_config, indent=2),

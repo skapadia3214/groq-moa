@@ -9,7 +9,7 @@ layer_agent_config = {
     'layer_agent_5' : {'model_name': 'llama3-8b-8192'},
 }
 agent = MOAgent.from_config(
-    main_model='mixtral-8x7b-32768',
+    main_model='llama-3.1-8b-instant',
     layer_agent_config=layer_agent_config
 )
 
